@@ -5,11 +5,15 @@ const graphqlHTTP = require('express-graphql');
 const {
     GraphQLSchema,
     GraphQLObjectType,
+    GraphQLList,
+    GraphQLInputObjectType,
+    GraphQLNonNull,
     GraphQLID,
     GraphQLString,
     GraphQLInt,
     GraphQLBoolean
 } = require('graphql');
+const { getVideoById, getVideos, createVideo } = require('./src/data');
 
 const PORT = process.env.PORT || 3000;
 const server = express();
@@ -30,9 +34,27 @@ const videoType = new GraphQLObjectType({
             type: GraphQLInt,
             description: 'The duration of the video (in seconds).'
         },
-        watched: {
+        released: {
             type: GraphQLBoolean,
-            description: 'Whether or not the viewer watched the video.'
+            description: 'Whether or not the video was released.'
+        }
+    }
+});
+
+const videoTypeInput = new GraphQLInputObjectType({
+    name: 'VideoInput',
+    fields: {
+        title: {
+            type: new GraphQLNonNull(GraphQLString),
+            description: 'The title of the video.'
+        },
+        duration: {
+            type: new GraphQLNonNull(GraphQLInt),
+            description: 'The duration of the video (in seconds).'
+        },
+        released: {
+            type: new GraphQLNonNull(GraphQLBoolean),
+            description: 'Whether or not the video was released.'
         }
     }
 });
@@ -43,51 +65,45 @@ const queryType = new GraphQLObjectType({
     fields: {
         video: {
             type: videoType,
-            resolve: () => new Promise(resolve => {
-                resolve({
-                    id: 'a',
-                    title: 'GraphQL for sure',
-                    duration: 180,
-                    watched: false
-                })
-            })
+            args: {
+                id: {
+                    type: GraphQLID,
+                    description: 'The ID of the video'
+                }
+            },
+            resolve: (_, args) => {
+                return getVideoById(args.id);
+            }
+        },
+        videos: {
+            type: new GraphQLList(videoType),
+            resolve: getVideos
+        }
+    }
+});
+
+const mutationType = new GraphQLObjectType({
+    name: 'MutationType',
+    description: 'The root mutation type',
+    fields: {
+        createVideo: {
+            type: videoType,
+            args: {
+                video: {
+                    type: new GraphQLNonNull(videoTypeInput)
+                }
+            },
+            resolve: (_, args) => {
+                return createVideo(args.video);
+            }
         }
     }
 });
 
 const schema = new GraphQLSchema({
-    query: queryType
+    query: queryType,
+    mutation: mutationType
 });
-
-const video1 = {
-    id: 'a',
-    title: 'first video',
-    duration: 180,
-    watched: false
-};
-
-const video2 = {
-    id: 'b',
-    title: 'second video',
-    duration: 120,
-    watched: true
-};
-
-const video3 = {
-    id: '3',
-    title: 'some video',
-    duration: 130,
-    watched: false
-};
-
-const video4 = {
-    id: '4',
-    title: 'that video',
-    duration: 240,
-    watched: true
-};
-
-const videos = [video1, video2];
 
 server.use('/graphql', graphqlHTTP({
     schema,
