@@ -55,7 +55,7 @@ const createVideo = ({ title, duration, released }) => {
 
 const getObjectById = (type, id) => {
     const types = {
-        video: getVideoById
+        Video: getVideoById
     };
 
     return types[type](id);

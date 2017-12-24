@@ -9,7 +9,8 @@ const { getObjectById } = require('./data');
 const { nodeInterface, nodeField } = nodeDefinitions(
     (globalId) => {
         const { type, id } = fromGlobalId(globalId);
-        return getObjectById(type.toLowerCase(), id);
+
+        return getObjectById(type, id);
     },
     (object) => {
         const { videoType } = require('../');
