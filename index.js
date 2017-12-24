@@ -14,6 +14,7 @@ const {
     GraphQLBoolean
 } = require('graphql');
 const { getVideoById, getVideos, createVideo } = require('./src/data');
+const nodeInterface = require('./src/node');
 
 const PORT = process.env.PORT || 3000;
 const server = express();
@@ -23,7 +24,7 @@ const videoType = new GraphQLObjectType({
     description: 'The video type',
     fields: {
         id: {
-            type: GraphQLID,
+            type: new GraphQLNonNull(GraphQLID),
             description: 'The id of the video.'
         },
         title: {
@@ -38,8 +39,10 @@ const videoType = new GraphQLObjectType({
             type: GraphQLBoolean,
             description: 'Whether or not the video was released.'
         }
-    }
+    },
+    interfaces: [nodeInterface]
 });
+exports.videoType = videoType;
 
 const videoTypeInput = new GraphQLInputObjectType({
     name: 'VideoInput',
