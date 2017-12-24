@@ -5,7 +5,6 @@ const graphqlHTTP = require('express-graphql');
 const {
     GraphQLSchema,
     GraphQLObjectType,
-    GraphQLInputObjectType,
     GraphQLNonNull,
     GraphQLID,
     GraphQLString,
@@ -17,7 +16,8 @@ const {
     globalIdField,
     connectionDefinitions,
     connectionFromPromisedArray,
-    connectionArgs
+    connectionArgs,
+    mutationWithClientMutationId
 } = require('graphql-relay');
 const { nodeInterface, nodeField } = require('./src/node');
 
@@ -45,24 +45,6 @@ const videoType = new GraphQLObjectType({
     interfaces: [nodeInterface]
 });
 exports.videoType = videoType;
-
-const videoTypeInput = new GraphQLInputObjectType({
-    name: 'VideoInput',
-    fields: {
-        title: {
-            type: new GraphQLNonNull(GraphQLString),
-            description: 'The title of the video.'
-        },
-        duration: {
-            type: new GraphQLNonNull(GraphQLInt),
-            description: 'The duration of the video (in seconds).'
-        },
-        released: {
-            type: new GraphQLNonNull(GraphQLBoolean),
-            description: 'Whether or not the video was released.'
-        }
-    }
-});
 
 const {connectionType: VideoConnection } = connectionDefinitions({
     nodeType: videoType,
@@ -105,21 +87,38 @@ const queryType = new GraphQLObjectType({
     }
 });
 
+const videoMutation = mutationWithClientMutationId({
+    name: 'AddVideo',
+    inputFields: {
+        title: {
+            type: new GraphQLNonNull(GraphQLString),
+            description: 'The title of the video.'
+        },
+        duration: {
+            type: new GraphQLNonNull(GraphQLInt),
+            description: 'The duration of the video (in seconds).'
+        },
+        released: {
+            type: new GraphQLNonNull(GraphQLBoolean),
+            description: 'Whether or not the video was released.'
+        }
+    },
+    outputFields: {
+        video: {
+            type: videoType
+        }
+    },
+    mutateAndGetPayload: (args) => new Promise((resolve, reject) => {
+        Promise.resolve(createVideo(args))
+            .then(video => resolve({ video }))
+            .catch(reject);
+    })
+});
 const mutationType = new GraphQLObjectType({
     name: 'MutationType',
     description: 'The root mutation type',
     fields: {
-        createVideo: {
-            type: videoType,
-            args: {
-                video: {
-                    type: new GraphQLNonNull(videoTypeInput)
-                }
-            },
-            resolve: (_, args) => {
-                return createVideo(args.video);
-            }
-        }
+        createVideo: videoMutation
     }
 });
 
